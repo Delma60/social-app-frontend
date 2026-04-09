@@ -1,57 +1,96 @@
-import React from 'react';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Link, Tabs } from 'expo-router';
-import { Pressable } from 'react-native';
-
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
-import { useClientOnlyValue } from '@/components/useClientOnlyValue';
-
-// You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
-function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>['name'];
-  color: string;
-}) {
-  return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
-}
+import { Ionicons } from "@expo/vector-icons";
+import { Tabs } from "expo-router";
+import { Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const { bottom } = useSafeAreaInsets();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
-        headerShown: useClientOnlyValue(false, true),
-      }}>
+        tabBarActiveTintColor: "#1DA1F2", // X (Twitter) Blue
+        tabBarInactiveTintColor: "#888",
+        tabBarStyle: {
+          backgroundColor: "#fff",
+          borderTopWidth: 0.5,
+          borderTopColor: "#eee",
+          height: 60 + bottom,
+          paddingBottom: Platform.OS === "ios" ? bottom : 8,
+          paddingTop: 8,
+        },
+        headerShown: false,
+      }}
+    >
+      {/* 1. TIKTOK LAYER: The Feed */}
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Tab One',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable>
-                {({ pressed }) => (
-                  <FontAwesome
-                    name="info-circle"
-                    size={25}
-                    color={Colors[colorScheme ?? 'light'].text}
-                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
+          title: "Feed",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "play-circle" : "play-circle-outline"}
+              size={26}
+              color={color}
+            />
           ),
         }}
       />
+
+      {/* 2. X/TWITTER LAYER: Trending */}
       <Tabs.Screen
-        name="two"
+        name="trending"
         options={{
-          title: 'Tab Two',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
+          title: "Trending",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "search" : "search-outline"}
+              size={26}
+              color={color}
+            />
+          ),
+        }}
+      />
+
+      {/* 3. IG/FB LAYER: Create (The center button) */}
+      <Tabs.Screen
+        name="create"
+        options={{
+          title: "Post",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="add-circle" size={32} color="#E1306C" /> // IG Pink/Red
+          ),
+        }}
+      />
+
+      {/* 4. WHATSAPP LAYER: Chats */}
+      <Tabs.Screen
+        name="messages"
+        options={{
+          title: "Chats",
+          tabBarBadge: 3, // WhatsApp-style notification badge
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "chatbubbles" : "chatbubbles-outline"}
+              size={26}
+              color={color}
+            />
+          ),
+        }}
+      />
+
+      {/* 5. INSTAGRAM LAYER: Profile */}
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "person" : "person-outline"}
+              size={26}
+              color={color}
+            />
+          ),
         }}
       />
     </Tabs>
