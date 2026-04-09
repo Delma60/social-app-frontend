@@ -1,7 +1,15 @@
 import { useState } from "react";
-import { 
-  View, Text, TextInput, Pressable, StyleSheet, 
-  KeyboardAvoidingView, Platform, Dimensions, Alert, ActivityIndicator
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  Dimensions,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -9,19 +17,19 @@ import { useRouter } from "expo-router";
 import { useAuthStore } from "@/libs/stores/auth-store";
 import { useLogin } from "@/libs/api/auth";
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function LoginScreen() {
   const router = useRouter();
-  
+
   // Local form state
-  const [email, setEmail] = useState(""); 
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   // API mutation
   const loginMutation = useLogin();
-  
+
   // Zustand global state
   const { loginAsDemo } = useAuthStore();
 
@@ -46,37 +54,43 @@ export default function LoginScreen() {
         email: email.trim(),
         password,
       });
-      
+
       // Success - user is logged in and redirected by the hook
       router.replace("/(tabs)");
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || "Login failed. Please try again.";
+      const errorMessage =
+        error.response?.data?.message || "Login failed. Please try again.";
       Alert.alert("Login Error", errorMessage);
     }
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
       >
         <View style={styles.container}>
-          
           {/* 1. BRANDING & HEADER */}
           <View style={styles.headerContainer}>
             <View style={styles.logoBox}>
               <Ionicons name="infinite" size={36} color="#ffffff" />
             </View>
             <Text style={styles.welcomeText}>Welcome back, Dele</Text>
-            <Text style={styles.subText}>Log in to connect with your local circle.</Text>
+            <Text style={styles.subText}>
+              Log in to connect with your local circle.
+            </Text>
           </View>
 
           {/* 2. STANDARD FORM INPUTS */}
           <View style={styles.formContainer}>
-            
             <View style={styles.inputWrapper}>
-              <Ionicons name="mail-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
+              <Ionicons
+                name="mail-outline"
+                size={20}
+                color="#94a3b8"
+                style={styles.inputIcon}
+              />
               <TextInput
                 style={styles.input}
                 placeholder="Email Address"
@@ -90,7 +104,12 @@ export default function LoginScreen() {
             </View>
 
             <View style={styles.inputWrapper}>
-              <Ionicons name="lock-closed-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
+              <Ionicons
+                name="lock-closed-outline"
+                size={20}
+                color="#94a3b8"
+                style={styles.inputIcon}
+              />
               <TextInput
                 style={styles.input}
                 placeholder="Password"
@@ -99,11 +118,14 @@ export default function LoginScreen() {
                 value={password}
                 onChangeText={setPassword}
               />
-              <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
-                <Ionicons 
-                  name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                  size={20} 
-                  color="#94a3b8" 
+              <Pressable
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.eyeIcon}
+              >
+                <Ionicons
+                  name={showPassword ? "eye-off-outline" : "eye-outline"}
+                  size={20}
+                  color="#94a3b8"
                 />
               </Pressable>
             </View>
@@ -113,15 +135,19 @@ export default function LoginScreen() {
             </Pressable>
 
             {/* Login Button - Now Connected to API */}
-            <Pressable 
+            <Pressable
               onPress={handleLogin}
               disabled={loginMutation.isPending}
               style={({ pressed }) => [
                 styles.loginButton,
-                { 
-                  backgroundColor: loginMutation.isPending ? '#64748b' : (pressed ? '#1e293b' : '#0f172a'),
-                  opacity: loginMutation.isPending ? 0.7 : 1
-                }
+                {
+                  backgroundColor: loginMutation.isPending
+                    ? "#64748b"
+                    : pressed
+                      ? "#1e293b"
+                      : "#0f172a",
+                  opacity: loginMutation.isPending ? 0.7 : 1,
+                },
               ]}
             >
               {loginMutation.isPending ? (
@@ -132,13 +158,20 @@ export default function LoginScreen() {
             </Pressable>
 
             {loginMutation.isError && (
-              <View style={{ marginTop: 12, padding: 12, backgroundColor: '#fee2e2', borderRadius: 8 }}>
-                <Text style={{ color: '#991b1b', fontSize: 14 }}>
-                  {(loginMutation.error as any)?.response?.data?.message || "Login failed"}
+              <View
+                style={{
+                  marginTop: 12,
+                  padding: 12,
+                  backgroundColor: "#fee2e2",
+                  borderRadius: 8,
+                }}
+              >
+                <Text style={{ color: "#991b1b", fontSize: 14 }}>
+                  {(loginMutation.error as any)?.response?.data?.message ||
+                    "Login failed"}
                 </Text>
               </View>
             )}
-
           </View>
 
           {/* 3. DIVIDER */}
@@ -150,11 +183,11 @@ export default function LoginScreen() {
 
           {/* 4. DEMO LOGIN ACTION */}
           <View style={styles.socialContainer}>
-            <Pressable 
+            <Pressable
               onPress={handleDemoLogin}
               style={({ pressed }) => [
                 styles.demoButton,
-                { opacity: pressed ? 0.8 : 1 }
+                { opacity: pressed ? 0.8 : 1 },
               ]}
             >
               <Ionicons name="flash" size={20} color="#ffffff" />
@@ -169,7 +202,6 @@ export default function LoginScreen() {
               <Text style={styles.signUpText}>Sign Up</Text>
             </Pressable>
           </View>
-
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -190,7 +222,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     justifyContent: "center",
   },
-  
+
   // -- Branding --
   headerContainer: {
     alignItems: "center",
@@ -200,7 +232,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 16,
-    backgroundColor: "#1DA1F2", 
+    backgroundColor: "#1DA1F2",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 20,

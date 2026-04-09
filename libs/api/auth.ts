@@ -84,6 +84,20 @@ export const useLogout = () => {
   });
 };
 
+export const useGenerateHandle = () => {
+
+  return useMutation({
+    mutationFn: async (data: { username?: string; email?: string }) => {
+      console.log({data})
+      const response = await apiClient.post('/auth/generate-handle', data, {  });
+      return response.data;
+    },
+    onError: (error: any) => {
+      console.error('Generate handle error:', error.response?.data?.message || error.message);
+    },
+  });
+};
+
 export const useRefreshToken = () => {
   const login = useAuthStore((state) => state.login);
   const user = useAuthStore((state) => state.user);
@@ -108,16 +122,16 @@ export const useRefreshToken = () => {
   });
 };
 
-// ==================== HANDLE GENERATION ====================
+// // ==================== HANDLE GENERATION ====================
 
-export const useGenerateHandle = () => {
-  return useMutation({
-    mutationFn: async (input: { name?: string; email?: string }) => {
-      const response = await apiClient.post('/auth/generate-handle', input);
-      return response.data;
-    },
-    onError: (error: any) => {
-      console.error('Handle generation error:', error.response?.data?.message || error.message);
-    },
-  });
-};
+// export const useGenerateHandle = () => {
+//   return useMutation({
+//     mutationFn: async (input: { name?: string; email?: string }) => {
+//       const response = await apiClient.post('/auth/generate-handle', input);
+//       return response.data;
+//     },
+//     onError: (error: any) => {
+//       console.error('Handle generation error:', error.response?.data?.message || error.message);
+//     },
+//   });
+// };

@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
-import { apiClient } from "../api";
+import { apiClient } from "../api"; // Make sure your apiClient handles setting the Bearer token in headers!
 import { User } from "../api/types";
 
 interface AuthState {
@@ -8,13 +8,16 @@ interface AuthState {
   authToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  errors: Record<string, string> | null;
 
   // Actions
   setUser: (user: User | null) => void;
   setAuthToken: (token: string | null) => void;
   clearAuth: () => void;
   checkAuth: () => Promise<void>;
-  login: (data: Partial<User>) => Promise<unknown>;
+  login: (data: Partial<User>) => Promise<boolean>;
+  register: (data: Partial<User>) => Promise<boolean>;
+  setErrors: (errors: Record<string, string> | null) => void;
   logout: () => void;
   loginAsDemo: () => void;
 }
@@ -23,7 +26,10 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   authToken: null,
   isAuthenticated: false,
-  isLoading: true,
+  isLoading: true, // Starts true so app can check auth on boot without flashing the login screen
+  errors: null,
+
+  setErrors: (errors) => set({ errors }),
 
   setUser: (user) => {
     set({
@@ -38,7 +44,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       isAuthenticated: token !== null,
     });
 
-    // Persist token
     if (token) {
       AsyncStorage.setItem("authToken", token);
     } else {
@@ -51,6 +56,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       user: null,
       authToken: null,
       isAuthenticated: false,
+      errors: null,
     });
     AsyncStorage.removeItem("authToken");
     AsyncStorage.removeItem("user");
@@ -78,23 +84,66 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  login: async (data) => {
+  register: async (data) => {
+    set({ isLoading: true, errors: null });
     try {
-      const url = apiClient.defaults.baseURL;
-      console.log("API URL in auth store:", url);
-      const response = await apiClient.post("/auth/register", data);
-    } catch (error) {
-        console.log(error)
-    }
-    // set({
-    //   user,
-    //   authToken: token,
-    //   isAuthenticated: true,
-    // });
+      // Send registration data to Laravel
+      const response = await apiClient.post("/auth/register", data); 
+      
+      // Destructure exactly what your Laravel AuthController returns
+      const { user, token } = response.data;
 
-    // // Persist to storage
-    // AsyncStorage.setItem("authToken", token);
-    // AsyncStorage.setItem("user", JSON.stringify(user));
+      // Update Zustand State
+      set({
+        user,
+        authToken: token,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+
+      // Persist to storage so user stays logged in
+      await AsyncStorage.setItem("authToken", token);
+      await AsyncStorage.setItem("user", JSON.stringify(user));
+
+      return true; // Return true so your SignUpScreen can trigger the router.replace()
+    } catch (error: any) {
+      console.log("Registration error:", error);
+      
+      // Capture Laravel Validation Errors (422) or general errors
+      const message = error.response?.data?.message || "Registration failed.";
+      const validationErrors = error.response?.data?.errors || { general: message };
+      
+      set({ errors: validationErrors, isLoading: false });
+      return false;
+    }
+  },
+
+  login: async (data) => {
+    set({ isLoading: true, errors: null });
+    try {
+      // Send login data to Laravel
+      const response = await apiClient.post("/auth/login", data);
+      
+      const { user, token } = response.data;
+
+      set({
+        user,
+        authToken: token,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+
+      await AsyncStorage.setItem("authToken", token);
+      await AsyncStorage.setItem("user", JSON.stringify(user));
+
+      return true; 
+    } catch (error: any) {
+      console.log("Login error:", error);
+      
+      const message = error.response?.data?.message || "Invalid credentials.";
+      set({ errors: { general: message }, isLoading: false });
+      return false;
+    }
   },
 
   logout: () => {
@@ -102,9 +151,13 @@ export const useAuthStore = create<AuthState>((set) => ({
       user: null,
       authToken: null,
       isAuthenticated: false,
+      errors: null,
     });
     AsyncStorage.removeItem("authToken");
     AsyncStorage.removeItem("user");
+    
+    // Optionally: Make an API call to Laravel to revoke the token
+    apiClient.post('/logout');
   },
 
   // Mock demo user for testing
@@ -116,7 +169,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       username: "demouser",
       bio: "Demo account",
       avatar_url: "https://i.pravatar.cc/150?img=12",
-      // cover_url: null,
       followers_count: 1200,
       following_count: 300,
       posts_count: 65,

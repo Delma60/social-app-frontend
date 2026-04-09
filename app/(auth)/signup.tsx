@@ -1,8 +1,8 @@
+import { useGenerateHandle } from "@/libs/api";
 import { useAuthStore } from "@/libs/stores/auth-store";
-import { UserProfile } from "@/libs/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -17,43 +17,87 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SignUpScreen() {
   const router = useRouter();
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    username: "",
+    identifier: "",
+    password: "",
+    password_confirmation: "",
+  });
+  const [generatedHandle, setGeneratedHandle] = useState("");
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [isGeneratingHandle, setIsGeneratingHandle] = useState(false);
+
 
   // Local form state
-  const [username, setUsername] = useState("");
-  const [identifier, setIdentifier] = useState(""); // Email or Phone
-  const [password, setPassword] = useState("");
+  // const [username, setUsername] = useState("");
+  // const [identifier, setIdentifier] = useState(""); // Email or Phone
+  // const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<
-    Partial<Record<keyof UserProfile, string>>
-  >({});
 
   // Zustand global state (for demo purposes)
-  const { loginAsDemo, login } = useAuthStore();
+  const { register, errors, isLoading } = useAuthStore();
+  const generateHandleMutation = useGenerateHandle();
+  const handleGenerationTimer = useRef<NodeJS.Timeout | number | undefined>(undefined);
 
   // Auto-generate the handle: lowercase, replace spaces and special characters with underscores
-  const generatedHandle = username
-    ? "@" +
-      username
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, "_")
-    : "";
+  useEffect(() => {
+    console.log("generating handle for:", formData.username)
+    if (handleGenerationTimer.current) {
+      clearTimeout(handleGenerationTimer.current);
+    }
+
+    if (formData.username && formData.username.trim().length > 0) {
+      console.log("working")
+      setIsGeneratingHandle(true);
+      handleGenerationTimer.current = setTimeout(async () => {
+        try {
+          const response = await generateHandleMutation.mutateAsync({
+            username: formData.username,
+          });
+          console.log("Handle generation response:", response.data.handle);
+          setGeneratedHandle(response.data.handle);
+          if (response.data?.suggestions) {
+            setSuggestions(response.data.suggestions);
+          }
+        } catch (error) {
+          console.error("Failed to generate handle suggestions:", error);
+        } finally {
+          setIsGeneratingHandle(false);
+        }
+      }, 500); // Debounce 500ms
+    } else {
+      setSuggestions([]);
+    }
+
+    return () => {
+      if (handleGenerationTimer.current) {
+        clearTimeout(handleGenerationTimer.current);
+      }
+    };
+  }, [formData.username]);
 
   const handleSignUp = () => {
     // Pass the auto-generated handle to your API
-    console.log("Signing up:", {
-      username,
-      handle: generatedHandle,
-      identifier,
-    });
-    const {} = login({
-      username,
-      handle: generatedHandle,
-      identifier,
-      password,
-    });
+    console.log("Signing up:", formData);
     // loginAsDemo();
     // router.replace("/(tabs)");
+  };
+
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    // Clear error for this field when user starts typing
+    
+  };
+
+  const handleSuggestionSelect = (suggestion: string) => {
+    setFormData((prev) => ({ ...prev, username: suggestion }));
+    setSuggestions([]);
+    // if (errors.username) {
+    //   setErrors((prev) => ({ ...prev, username: "" }));
+    // }
   };
 
   return (
@@ -86,7 +130,7 @@ export default function SignUpScreen() {
           <View style={styles.formContainer}>
             {/* Username Input */}
             <View
-              style={[styles.inputWrapper, { marginBottom: username ? 8 : 16 }]}
+              style={[styles.inputWrapper, { marginBottom: formData.username ? 8 : 16 }]}
             >
               <Ionicons
                 name="person-outline"
@@ -99,13 +143,13 @@ export default function SignUpScreen() {
                 placeholder="Username"
                 placeholderTextColor="#94a3b8"
                 autoCapitalize="words"
-                value={username}
-                onChangeText={setUsername}
+                value={formData.username}
+                onChangeText={(value) => handleInputChange("username", value)}
               />
             </View>
 
             {/* Real-time Handle Preview */}
-            {username.length > 0 && (
+            {(generatedHandle && formData.username.length > 0) && (
               <Text style={styles.handlePreview}>
                 Your handle will be:{" "}
                 <Text style={styles.handleHighlight}>{generatedHandle}</Text>
@@ -126,8 +170,8 @@ export default function SignUpScreen() {
                 placeholderTextColor="#94a3b8"
                 keyboardType="email-address"
                 autoCapitalize="none"
-                value={identifier}
-                onChangeText={setIdentifier}
+                value={formData.identifier}
+                onChangeText={(value) => handleInputChange("identifier", value)}
               />
             </View>
 
@@ -144,8 +188,8 @@ export default function SignUpScreen() {
                 placeholder="Create Password"
                 placeholderTextColor="#94a3b8"
                 secureTextEntry={!showPassword}
-                value={password}
-                onChangeText={setPassword}
+                value={formData.password}
+                onChangeText={(value) => handleInputChange("password", value)}
               />
               <Pressable
                 onPress={() => setShowPassword(!showPassword)}
