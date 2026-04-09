@@ -16,12 +16,17 @@ interface AuthState {
   clearAuth: () => void;
   checkAuth: () => Promise<void>;
   login: (data: Partial<User>) => Promise<boolean>;
-  register: (data: Partial<User>) => Promise<boolean>;
+  register: (data: Partial<User>, options?:Options) => Promise<boolean>;
   setErrors: (errors: Record<string, string> | null) => void;
   logout: () => void;
-  loginAsDemo: () => void;
+  // loginAsDemo: () => void;
 }
 
+
+interface Options {
+  onSuccess: (data: any) => void
+  onError: (error: any) => void
+}
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   authToken: null,
@@ -84,7 +89,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  register: async (data) => {
+  register: async (data, options) => {
     set({ isLoading: true, errors: null });
     try {
       // Send registration data to Laravel
@@ -92,6 +97,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       
       // Destructure exactly what your Laravel AuthController returns
       const { user, token } = response.data;
+
 
       // Update Zustand State
       set({
@@ -104,6 +110,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       // Persist to storage so user stays logged in
       await AsyncStorage.setItem("authToken", token);
       await AsyncStorage.setItem("user", JSON.stringify(user));
+      if (options?.onSuccess) {
+        options.onSuccess(response.data);
+      }
 
       return true; // Return true so your SignUpScreen can trigger the router.replace()
     } catch (error: any) {
@@ -114,6 +123,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       const validationErrors = error.response?.data?.errors || { general: message };
       
       set({ errors: validationErrors, isLoading: false });
+      if (options?.onError) {
+        options.onError(error);
+      }
       return false;
     }
   },

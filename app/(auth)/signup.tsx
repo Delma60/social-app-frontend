@@ -1,8 +1,7 @@
-import { useGenerateHandle } from "@/libs/api";
-import { useAuthStore } from "@/libs/stores/auth-store";
+
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -25,80 +24,25 @@ export default function SignUpScreen() {
     password: "",
     password_confirmation: "",
   });
-  const [generatedHandle, setGeneratedHandle] = useState("");
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [isGeneratingHandle, setIsGeneratingHandle] = useState(false);
 
-
-  // Local form state
-  // const [username, setUsername] = useState("");
-  // const [identifier, setIdentifier] = useState(""); // Email or Phone
-  // const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  // Zustand global state (for demo purposes)
-  const { register, errors, isLoading } = useAuthStore();
-  const generateHandleMutation = useGenerateHandle();
-  const handleGenerationTimer = useRef<NodeJS.Timeout | number | undefined>(undefined);
 
-  // Auto-generate the handle: lowercase, replace spaces and special characters with underscores
-  useEffect(() => {
-    console.log("generating handle for:", formData.username)
-    if (handleGenerationTimer.current) {
-      clearTimeout(handleGenerationTimer.current);
-    }
-
-    if (formData.username && formData.username.trim().length > 0) {
-      console.log("working")
-      setIsGeneratingHandle(true);
-      handleGenerationTimer.current = setTimeout(async () => {
-        try {
-          const response = await generateHandleMutation.mutateAsync({
-            username: formData.username,
-          });
-          console.log("Handle generation response:", response.data.handle);
-          setGeneratedHandle(response.data.handle);
-          if (response.data?.suggestions) {
-            setSuggestions(response.data.suggestions);
-          }
-        } catch (error) {
-          console.error("Failed to generate handle suggestions:", error);
-        } finally {
-          setIsGeneratingHandle(false);
-        }
-      }, 500); // Debounce 500ms
-    } else {
-      setSuggestions([]);
-    }
-
-    return () => {
-      if (handleGenerationTimer.current) {
-        clearTimeout(handleGenerationTimer.current);
-      }
-    };
-  }, [formData.username]);
 
   const handleSignUp = () => {
-    // Pass the auto-generated handle to your API
-    console.log("Signing up:", formData);
-    // loginAsDemo();
-    // router.replace("/(tabs)");
+    router.push({
+      pathname: "/(auth)/choose-handle",
+      params: {
+        data: JSON.stringify(formData)
+      },
+    });
   };
-
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error for this field when user starts typing
-    
   };
 
-  const handleSuggestionSelect = (suggestion: string) => {
-    setFormData((prev) => ({ ...prev, username: suggestion }));
-    setSuggestions([]);
-    // if (errors.username) {
-    //   setErrors((prev) => ({ ...prev, username: "" }));
-    // }
-  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -130,7 +74,10 @@ export default function SignUpScreen() {
           <View style={styles.formContainer}>
             {/* Username Input */}
             <View
-              style={[styles.inputWrapper, { marginBottom: formData.username ? 8 : 16 }]}
+              style={[
+                styles.inputWrapper,
+                { marginBottom: formData.username ? 8 : 16 },
+              ]}
             >
               <Ionicons
                 name="person-outline"
@@ -148,14 +95,6 @@ export default function SignUpScreen() {
               />
             </View>
 
-            {/* Real-time Handle Preview */}
-            {(generatedHandle && formData.username.length > 0) && (
-              <Text style={styles.handlePreview}>
-                Your handle will be:{" "}
-                <Text style={styles.handleHighlight}>{generatedHandle}</Text>
-              </Text>
-            )}
-
             {/* Email / Phone Input */}
             <View style={styles.inputWrapper}>
               <Ionicons
@@ -166,12 +105,12 @@ export default function SignUpScreen() {
               />
               <TextInput
                 style={styles.input}
-                placeholder="Phone Number or Email"
+                placeholder="Email"
                 placeholderTextColor="#94a3b8"
                 keyboardType="email-address"
                 autoCapitalize="none"
-                value={formData.identifier}
-                onChangeText={(value) => handleInputChange("identifier", value)}
+                value={formData.email}
+                onChangeText={(value) => handleInputChange("email", value)}
               />
             </View>
 
